@@ -1,0 +1,162 @@
+// Configuración del generador de Prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Configuración de la base de datos MySQL
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MODELO DE USUARIO
+// ============================================
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255)
+  role      Role     @default(USUARIO)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  sessions Session[]
+  reservas Reserva[]
+
+  @@map("users")
+}
+
+// ============================================
+// MODELO DE SESIÓN (Refresh Tokens)
+// ============================================
+model Session {
+  id           String   @id @default(uuid())
+  userId       Int
+  refreshToken String   @unique @db.VarChar(768)
+  userAgent    String?  @db.Text
+  ipAddress    String?  @db.VarChar(45)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  // Relación
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ============================================
+// MODELO DE PERIODO DE LIBRAS
+// Configuración del admin para el periodo actual
+// ============================================
+model PeriodoLibras {
+  id            Int       @id @default(autoincrement())
+  librasTotales Int       // Cantidad total de libras disponibles
+  fechaInicio   DateTime  @db.Date
+  fechaFin      DateTime  @db.Date
+  isActive      Boolean   @default(true) // Solo puede haber 1 periodo activo
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relaciones
+  reservas Reserva[]
+
+  @@map("periodos_libras")
+}
+
+// ============================================
+// MODELO DE RESERVA
+// ============================================
+model Reserva {
+  id            Int            @id @default(autoincrement())
+  libras        Decimal        @db.Decimal(10, 2)
+  fecha         DateTime       @db.Date
+  estado        String         @db.VarChar(100) // CDMX, Monterrey, etc.
+  observaciones String?        @db.Text
+  status        StatusReserva  @default(PENDIENTE)
+  
+  // Relaciones
+  userId        Int
+  periodoId     Int
+  
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  periodo PeriodoLibras @relation(fields: [periodoId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([periodoId])
+  @@index([status])
+  @@map("reservas")
+}
+
+// ============================================
+// MODELO DE HISTÓRICO DE PERIODOS
+// Guarda periodos completados para registro
+// ============================================
+model HistoricoPeriodo {
+  id                 Int      @id @default(autoincrement())
+  librasTotales      Int
+  librasReservadas   Decimal  @db.Decimal(15, 2)
+  librasDisponibles  Decimal  @db.Decimal(15, 2)
+  fechaInicio        DateTime @db.Date
+  fechaFin           DateTime @db.Date
+  totalReservas      Int      // Total de reservas en ese periodo
+  totalUsuarios      Int      // Total de usuarios que reservaron
+  fechaArchivado     DateTime @default(now())
+
+  @@map("historico_periodos")
+}
+
+// ============================================
+// MODELO DE HISTÓRICO DE RESERVAS
+// Snapshot de reservas cuando se archiva un periodo
+// ============================================
+model HistoricoReserva {
+  id                 Int      @id @default(autoincrement())
+  // Datos del usuario (snapshot)
+  userId             Int
+  userName           String   @db.VarChar(100)
+  userEmail          String   @db.VarChar(255)
+  
+  // Datos de la reserva (snapshot)
+  libras             Decimal  @db.Decimal(10, 2)
+  fecha              DateTime @db.Date
+  estado             String   @db.VarChar(100)
+  observaciones      String?  @db.Text
+  status             String   @db.VarChar(50) // StatusReserva como string
+  
+  // Datos del periodo (snapshot)
+  periodoFechaInicio DateTime @db.Date
+  periodoFechaFin    DateTime @db.Date
+  
+  // Metadata
+  fechaArchivado     DateTime @default(now())
+  reservaOriginalId  Int      // ID de la reserva original
+
+  @@index([userId])
+  @@index([periodoFechaInicio, periodoFechaFin])
+  @@map("historico_reservas")
+}
+
+// ============================================
+// ENUMERACIONES
+// ============================================
+
+// Roles de usuario
+enum Role {
+  ADMIN_PRINCIPAL
+  USUARIO
+}
+
+// Estados de la reserva (workflow)
+enum StatusReserva {
+  PENDIENTE    // Reserva creada
+  CONFIRMADA   // Admin confirmó
+  ENVIADA      // Paquete enviado
+  ENTREGADA    // Paquete entregado
+  CANCELADA    // Reserva cancelada
+}
