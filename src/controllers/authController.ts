@@ -23,8 +23,7 @@ import {
   SUCCESS_MESSAGES, 
   HTTP_STATUS 
 } from '../config/constants';
-import { 
-  AppError, 
+import {   
   createConflictError, 
   createUnauthorizedError,
   createNotFoundError,

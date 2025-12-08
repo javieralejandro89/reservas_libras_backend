@@ -3,7 +3,6 @@
  */
 
 import { body, param } from 'express-validator';
-import { ROLES } from '../config/constants';
 
 /**
  * Validación para registro de usuario
