@@ -98,8 +98,7 @@ export interface UpdateUserDTO {
  */
 export interface CreatePeriodoDTO {
   librasTotales: number;
-  fechaInicio: string | Date;
-  fechaFin: string | Date;
+  fechaEnvio: string | Date; // Fecha única de envío
 }
 
 /**
@@ -107,8 +106,7 @@ export interface CreatePeriodoDTO {
  */
 export interface UpdatePeriodoDTO {
   librasTotales?: number;
-  fechaInicio?: string | Date;
-  fechaFin?: string | Date;
+  fechaEnvio?: string | Date; // Fecha única de envío
 }
 
 // ============================================
@@ -251,7 +249,7 @@ export interface UserFilters extends PaginationFilter {
 export interface HistoricoFilters extends PaginationFilter {
   startDate?: string | Date;
   endDate?: string | Date;
-  orderBy?: 'fechaArchivado' | 'fechaInicio' | 'fechaFin' | 'librasTotales' | 'totalReservas';
+  orderBy?: 'fechaArchivado' | 'fechaEnvio' | 'librasTotales' | 'totalReservas';
   orderDirection?: 'asc' | 'desc';
 }
 
@@ -289,8 +287,7 @@ export interface PeriodoStats {
   periodo: {
     id: number;
     librasTotales: number;
-    fechaInicio: string;
-    fechaFin: string;
+    fechaEnvio: string; // Fecha única de envío
     isActive: boolean;
   };
   librasReservadas: string;
@@ -329,8 +326,7 @@ export interface PeriodoHistoricoStats {
   librasReservadas: string;
   librasDisponibles: string;
   porcentajeOcupacion: number;
-  fechaInicio: string;
-  fechaFin: string;
+  fechaEnvio: string; // Fecha única de envío
   totalReservas: number;
   totalUsuarios: number;
   fechaArchivado: string;
@@ -366,8 +362,7 @@ export interface ReporteMensual {
  */
 export interface ReportePeriodo {
   periodoId: number;
-  fechaInicio: string;
-  fechaFin: string;
+  fechaEnvio: string; // Fecha única de envío
   librasTotales: number;
   librasReservadas: string;
   porcentajeOcupacion: number;

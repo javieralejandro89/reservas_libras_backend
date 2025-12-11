@@ -17,29 +17,22 @@ export const createPeriodo = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  const { librasTotales, fechaInicio, fechaFin } = req.body as CreatePeriodoDTO;
+  const { librasTotales, fechaEnvio } = req.body as CreatePeriodoDTO;
 
-  // Validar que las fechas sean futuras
-const hoy = new Date();
-hoy.setHours(0, 0, 0, 0);
+  // Validar que la fecha sea futura o hoy
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
   
-const fechaInicioDate = parseDateWithoutTimezone(fechaInicio);
-if (fechaInicioDate < hoy) {
-  throw createBadRequestError('La fecha de inicio debe ser hoy o en el futuro');
-}
-
-// Validar que fechaFin > fechaInicio
-const fechaFinDate = parseDateWithoutTimezone(fechaFin);
-if (fechaFinDate <= fechaInicioDate) {
-  throw createBadRequestError('La fecha de fin debe ser posterior a la fecha de inicio');
-}
+  const fechaEnvioDate = parseDateWithoutTimezone(fechaEnvio);
+  if (fechaEnvioDate < hoy) {
+    throw createBadRequestError('La fecha de envío debe ser hoy o en el futuro');
+  }
 
   // Crear periodo
   const periodo = await prisma.periodoLibras.create({
     data: {
       librasTotales,
-      fechaInicio: parseDateWithoutTimezone(fechaInicio),
-      fechaFin: parseDateWithoutTimezone(fechaFin),
+      fechaEnvio: parseDateWithoutTimezone(fechaEnvio),
       isActive: true,
     },
   });
@@ -88,7 +81,7 @@ export const listPeriodos = async (
     },
     skip: pagination.skip,
     take: pagination.limit,
-    orderBy: { createdAt: 'desc' },
+    orderBy: { fechaEnvio: 'desc' },
   });
 
   const response: PaginatedResponse<typeof periodos[0]> = {
@@ -206,7 +199,7 @@ export const updatePeriodo = async (
     throw createBadRequestError('ID de periodo requerido');
   }
 
-  const { librasTotales, fechaInicio, fechaFin } = req.body as UpdatePeriodoDTO;
+  const { librasTotales, fechaEnvio } = req.body as UpdatePeriodoDTO;
 
   // Verificar que el periodo exista
   const periodo = await prisma.periodoLibras.findUnique({
@@ -241,8 +234,7 @@ export const updatePeriodo = async (
   const updateData: any = {};
 
   if (librasTotales) updateData.librasTotales = librasTotales;
-  if (fechaInicio) updateData.fechaInicio = parseDateWithoutTimezone(fechaInicio);
-  if (fechaFin) updateData.fechaFin = parseDateWithoutTimezone(fechaFin);
+  if (fechaEnvio) updateData.fechaEnvio = parseDateWithoutTimezone(fechaEnvio);
 
   // Actualizar periodo
   const updatedPeriodo = await prisma.periodoLibras.update({
@@ -306,8 +298,7 @@ export const closePeriodo = async (
       librasTotales: periodo.librasTotales,
       librasReservadas,
       librasDisponibles,
-      fechaInicio: periodo.fechaInicio,
-      fechaFin: periodo.fechaFin,
+      fechaEnvio: periodo.fechaEnvio,
       totalReservas: reservasActivas.length,
       totalUsuarios: usuariosUnicos,
     },
@@ -326,8 +317,7 @@ export const closePeriodo = async (
           estado: reserva.estado,
           observaciones: reserva.observaciones,
           status: reserva.status,
-          periodoFechaInicio: periodo.fechaInicio,
-          periodoFechaFin: periodo.fechaFin,
+          periodoFechaEnvio: periodo.fechaEnvio,
           reservaOriginalId: reserva.id,
         },
       })

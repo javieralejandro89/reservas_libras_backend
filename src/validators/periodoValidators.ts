@@ -15,28 +15,11 @@ export const createPeriodoValidation = [
     .withMessage('Las libras totales deben ser un número entero positivo')
     .toInt(),
 
-  body('fechaInicio')
+  body('fechaEnvio')
     .notEmpty()
-    .withMessage('La fecha de inicio es requerida')
+    .withMessage('La fecha de envío es requerida')
     .isISO8601()
     .withMessage('Formato de fecha inválido (usar YYYY-MM-DD)'),
-    
-
-  body('fechaFin')
-    .notEmpty()
-    .withMessage('La fecha de fin es requerida')
-    .isISO8601()
-    .withMessage('Formato de fecha inválido (usar YYYY-MM-DD)')    
-    .custom((fechaFin, { req }) => {
-      const fechaInicio = new Date(req.body.fechaInicio);
-      const fechaFinDate = new Date(fechaFin);
-
-      if (fechaFinDate <= fechaInicio) {
-        throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
-      }
-
-      return true;
-    }),
 ];
 
 /**
@@ -56,28 +39,10 @@ export const updatePeriodoValidation = [
     .withMessage('Las libras totales deben ser un número entero positivo')
     .toInt(),
 
-  body('fechaInicio')
+  body('fechaEnvio')
     .optional()
     .isISO8601()
     .withMessage('Formato de fecha inválido (usar YYYY-MM-DD)'),
-    
-
-  body('fechaFin')
-    .optional()
-    .isISO8601()
-    .withMessage('Formato de fecha inválido (usar YYYY-MM-DD)')    
-    .custom((fechaFin, { req }) => {
-      if (req.body.fechaInicio) {
-        const fechaInicio = new Date(req.body.fechaInicio);
-        const fechaFinDate = new Date(fechaFin);
-
-        if (fechaFinDate <= fechaInicio) {
-          throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
-        }
-      }
-
-      return true;
-    }),
 ];
 
 /**

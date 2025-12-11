@@ -59,10 +59,10 @@ export const createReserva = async (
   const periodosActivos = await prisma.periodoLibras.findMany({
     where: {
       isActive: true,
-      fechaFin: { gte: fechaReserva },
+      fechaEnvio: { gte: fechaReserva },
     },
     orderBy: {
-      fechaInicio: 'asc',
+      fechaEnvio: 'asc',
     },
     include: {
       reservas: {
@@ -79,9 +79,8 @@ export const createReserva = async (
 
   // Validar que la fecha esté dentro de al menos un periodo
   const periodoConFecha = periodosActivos.find(p => {
-  const inicio = parseDateWithoutTimezone(p.fechaInicio.toISOString().split('T')[0]!);
-  const fin = parseDateWithoutTimezone(p.fechaFin.toISOString().split('T')[0]!);
-  return fechaReserva >= inicio && fechaReserva <= fin;
+  const fechaEnvioPeriodo = parseDateWithoutTimezone(p.fechaEnvio.toISOString().split('T')[0]!);
+    return fechaReserva.getTime() === fechaEnvioPeriodo.getTime();
 });
 
   if (!periodoConFecha) {
@@ -111,15 +110,13 @@ export const createReserva = async (
     if (librasDisponibles > 0) {
       const librasParaEstePeriodo = Math.min(librasRestantes, librasDisponibles);
 
-      const fechaInicioPeriodo = parseDateWithoutTimezone(periodo.fechaInicio.toISOString().split('T')[0]!);
-const fechaFinPeriodo = parseDateWithoutTimezone(periodo.fechaFin.toISOString().split('T')[0]!);
+      const fechaEnvioPeriodo = parseDateWithoutTimezone(periodo.fechaEnvio.toISOString().split('T')[0]!);
 
-const fechaReservaParaPeriodo: Date = 
-  planDeReservas.length === 0 && 
-  fechaReserva >= fechaInicioPeriodo && 
-  fechaReserva <= fechaFinPeriodo
-    ? fechaReserva
-    : fechaInicioPeriodo;
+      const fechaReservaParaPeriodo: Date = 
+        planDeReservas.length === 0 && 
+        fechaReserva.getTime() === fechaEnvioPeriodo.getTime()
+          ? fechaReserva
+          : fechaEnvioPeriodo;
 
       planDeReservas.push({
         periodo,
@@ -167,8 +164,7 @@ for (const [index, plan] of planDeReservas.entries()) {
           select: {
             id: true,
             librasTotales: true,
-            fechaInicio: true,
-            fechaFin: true,
+            fechaEnvio: true,
           },
         },
       },
@@ -183,9 +179,8 @@ for (const [index, plan] of planDeReservas.entries()) {
     mensaje = SUCCESS_MESSAGES.RESERVA_CREATED;
   } else {
     const detalles = reservasCreadas.map((r, _index) => {
-      const inicio = r.periodo.fechaInicio.toLocaleDateString('es-MX');
-      const fin = r.periodo.fechaFin.toLocaleDateString('es-MX');
-      return `${parseFloat(r.libras.toString())} lbs en periodo ${inicio} - ${fin}`;
+      const envio = r.periodo.fechaEnvio.toLocaleDateString('es-MX');
+      return `${parseFloat(r.libras.toString())} lbs en periodo con envío el ${envio}`;
     }).join(', ');
     
     mensaje = `Reserva dividida en ${reservasCreadas.length} periodos: ${detalles}`;
@@ -264,8 +259,7 @@ export const listReservas = async (
         select: {
           id: true,
           librasTotales: true,
-          fechaInicio: true,
-          fechaFin: true,
+          fechaEnvio: true,
         },
       },
     },
@@ -320,8 +314,7 @@ export const getReservaById = async (
         select: {
           id: true,
           librasTotales: true,
-          fechaInicio: true,
-          fechaFin: true,
+          fechaEnvio: true,
         },
       },
     },
@@ -406,8 +399,7 @@ export const updateReserva = async (
   const nuevoPeriodo = await prisma.periodoLibras.findFirst({
     where: {
       isActive: true,
-      fechaInicio: { lte: fechaReserva },
-      fechaFin: { gte: fechaReserva },
+      fechaEnvio: fechaReserva,
     },
   });
 
@@ -441,7 +433,7 @@ export const updateReserva = async (
 
     if (librasReserva > librasDisponiblesNuevoPeriodo) {
       throw createBadRequestError(
-        `No hay suficientes libras disponibles en el periodo ${nuevoPeriodo.fechaInicio.toLocaleDateString('es-MX')} - ${nuevoPeriodo.fechaFin.toLocaleDateString('es-MX')}. ` +
+        `No hay suficientes libras disponibles en el periodo con envío el ${nuevoPeriodo.fechaEnvio.toLocaleDateString('es-MX')}. ` +
         `Disponibles: ${librasDisponiblesNuevoPeriodo.toFixed(2)} lbs, necesarias: ${librasReserva.toFixed(2)} lbs.`
       );
     }
@@ -471,8 +463,7 @@ export const updateReserva = async (
         select: {
           id: true,
           librasTotales: true,
-          fechaInicio: true,
-          fechaFin: true,
+          fechaEnvio: true,
         },
       },
     },

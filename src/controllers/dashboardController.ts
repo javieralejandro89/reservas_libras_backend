@@ -20,7 +20,7 @@ export const getDashboardStats = async (
   // Obtener TODOS los periodos activos
   const periodosActivos = await prisma.periodoLibras.findMany({
     where: { isActive: true },
-    orderBy: { fechaInicio: 'asc' },
+    orderBy: { fechaEnvio: 'asc' },
     include: {
       reservas: {
         where: {
@@ -118,8 +118,7 @@ const periodosConStats = periodosActivos.map(periodo => {
       periodo: {
         id: periodo.id,
         librasTotales: periodo.librasTotales,
-        fechaInicio: periodo.fechaInicio.toISOString().split('T')[0]!,
-        fechaFin: periodo.fechaFin.toISOString().split('T')[0]!,
+        fechaEnvio: periodo.fechaEnvio.toISOString().split('T')[0]!,
         isActive: periodo.isActive,
       },
       librasReservadas: librasReservadas.toFixed(2),
@@ -266,8 +265,7 @@ export const getReservasHistoricas = async (
   // Buscar reservas históricas de ese periodo
   const reservasHistoricas = await prisma.historicoReserva.findMany({
     where: {
-      periodoFechaInicio: historicoPeriodo.fechaInicio,
-      periodoFechaFin: historicoPeriodo.fechaFin,
+      periodoFechaEnvio: historicoPeriodo.fechaEnvio,
     },
     orderBy: { fechaArchivado: 'desc' },
   });
@@ -359,8 +357,7 @@ export const getReportes = async (
     libras: number;
     fecha: Date;
     estado: string;
-    periodoFechaInicio: Date;
-    periodoFechaFin: Date;
+    periodoFechaEnvio: Date;
     status: string;
   }
 
@@ -373,8 +370,7 @@ export const getReportes = async (
       libras: parseFloat(r.libras.toString()),
       fecha: r.fecha,
       estado: r.estado,
-      periodoFechaInicio: r.periodoFechaInicio,
-      periodoFechaFin: r.periodoFechaFin,
+      periodoFechaEnvio: r.periodoFechaEnvio,
       status: r.status,
     })),
     // Reservas activas
@@ -385,8 +381,7 @@ export const getReportes = async (
       libras: parseFloat(r.libras.toString()),
       fecha: r.fecha,
       estado: r.estado,
-      periodoFechaInicio: r.periodo.fechaInicio,
-      periodoFechaFin: r.periodo.fechaFin,
+      periodoFechaEnvio: r.periodo.fechaEnvio,
       status: r.status,
     })),
   ];
@@ -416,7 +411,7 @@ export const getReportes = async (
     const usuario = usuariosMap.get(reserva.userId);
     usuario.totalLibras += reserva.libras;
     usuario.totalReservas++;
-    usuario.periodos.add(`${reserva.periodoFechaInicio.toISOString()}-${reserva.periodoFechaFin.toISOString()}`);
+    usuario.periodos.add(reserva.periodoFechaEnvio.toISOString());
   });
 
   const porUsuario = Array.from(usuariosMap.values())
@@ -456,7 +451,7 @@ export const getReportes = async (
     mes.totalLibras += reserva.libras;
     mes.totalReservas++;
     mes.usuarios.add(reserva.userId);
-    mes.periodos.add(`${reserva.periodoFechaInicio.toISOString()}-${reserva.periodoFechaFin.toISOString()}`);
+    mes.periodos.add(reserva.periodoFechaEnvio.toISOString());
   });
 
   const porMes = Array.from(mesesMap.values())
@@ -481,21 +476,11 @@ export const getReportes = async (
   const periodosHistoricosQuery: any = {};
   
   if (startDate || endDate) {
-  periodosHistoricosQuery.OR = [
-    {
-      fechaInicio: {
-        ...(startDate ? { gte: parseDateWithoutTimezone(startDate as string) } : {}),
-        ...(endDate ? { lte: parseDateWithoutTimezone(endDate as string) } : {}),
-      },
-    },
-    {
-      fechaFin: {
-        ...(startDate ? { gte: parseDateWithoutTimezone(startDate as string) } : {}),
-        ...(endDate ? { lte: parseDateWithoutTimezone(endDate as string) } : {}),
-      },
-    },
-  ];
-}
+    periodosHistoricosQuery.fechaEnvio = {
+      ...(startDate ? { gte: parseDateWithoutTimezone(startDate as string) } : {}),
+      ...(endDate ? { lte: parseDateWithoutTimezone(endDate as string) } : {}),
+    };
+  }
 
   if (periodoId) {
     periodosHistoricosQuery.id = parseInt(periodoId as string, 10);
@@ -510,21 +495,11 @@ export const getReportes = async (
   const periodosActivosQuery: any = { isActive: true };
   
   if (startDate || endDate) {
-  periodosActivosQuery.OR = [
-    {
-      fechaInicio: {
-        ...(startDate ? { gte: parseDateWithoutTimezone(startDate as string) } : {}),
-        ...(endDate ? { lte: parseDateWithoutTimezone(endDate as string) } : {}),
-      },
-    },
-    {
-      fechaFin: {
-        ...(startDate ? { gte: parseDateWithoutTimezone(startDate as string) } : {}),
-        ...(endDate ? { lte: parseDateWithoutTimezone(endDate as string) } : {}),
-      },
-    },
-  ];
-}
+    periodosActivosQuery.fechaEnvio = {
+      ...(startDate ? { gte: parseDateWithoutTimezone(startDate as string) } : {}),
+      ...(endDate ? { lte: parseDateWithoutTimezone(endDate as string) } : {}),
+    };
+  }
 
   if (periodoId) {
     periodosActivosQuery.id = parseInt(periodoId as string, 10);
@@ -537,8 +512,7 @@ export const getReportes = async (
   // Combinar periodos históricos
   const porPeriodo = periodosHistoricos.map(p => ({
     periodoId: p.id,
-    fechaInicio: p.fechaInicio.toISOString().split('T')[0]!,
-    fechaFin: p.fechaFin.toISOString().split('T')[0]!,
+    fechaEnvio: p.fechaEnvio.toISOString().split('T')[0]!,
     librasTotales: p.librasTotales,
     librasReservadas: parseFloat(p.librasReservadas.toString()).toFixed(2),
     porcentajeOcupacion: (parseFloat(p.librasReservadas.toString()) / p.librasTotales) * 100,
@@ -549,8 +523,7 @@ export const getReportes = async (
   // Agregar periodos activos con sus estadísticas
   for (const periodoActivo of periodosActivos) {
     const reservasDelPeriodo = todasLasReservas.filter(r => 
-      r.periodoFechaInicio.getTime() === periodoActivo.fechaInicio.getTime() &&
-      r.periodoFechaFin.getTime() === periodoActivo.fechaFin.getTime()
+      r.periodoFechaEnvio.getTime() === periodoActivo.fechaEnvio.getTime()
     );
 
     const librasReservadas = reservasDelPeriodo.reduce((sum, r) => sum + r.libras, 0);
@@ -558,8 +531,7 @@ export const getReportes = async (
 
     porPeriodo.push({
       periodoId: periodoActivo.id,
-      fechaInicio: periodoActivo.fechaInicio.toISOString().split('T')[0]!,
-      fechaFin: periodoActivo.fechaFin.toISOString().split('T')[0]!,
+      fechaEnvio: periodoActivo.fechaEnvio.toISOString().split('T')[0]!,
       librasTotales: periodoActivo.librasTotales,
       librasReservadas: librasReservadas.toFixed(2),
       porcentajeOcupacion: (librasReservadas / periodoActivo.librasTotales) * 100,
@@ -569,7 +541,7 @@ export const getReportes = async (
   }
 
   // Ordenar por fecha más reciente
-  porPeriodo.sort((a, b) => new Date(b.fechaInicio).getTime() - new Date(a.fechaInicio).getTime());
+  porPeriodo.sort((a, b) => new Date(b.fechaEnvio).getTime() - new Date(a.fechaEnvio).getTime());
 
   // ============================================
   // 8. REPORTE POR ESTADO

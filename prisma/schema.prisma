@@ -54,8 +54,7 @@ model Session {
 model PeriodoLibras {
   id            Int       @id @default(autoincrement())
   librasTotales Int       // Cantidad total de libras disponibles
-  fechaInicio   DateTime  @db.Date
-  fechaFin      DateTime  @db.Date
+  fechaEnvio    DateTime  @db.Date // Fecha única de envío del periodo
   isActive      Boolean   @default(true) // Solo puede haber 1 periodo activo
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -102,8 +101,7 @@ model HistoricoPeriodo {
   librasTotales      Int
   librasReservadas   Decimal  @db.Decimal(15, 2)
   librasDisponibles  Decimal  @db.Decimal(15, 2)
-  fechaInicio        DateTime @db.Date
-  fechaFin           DateTime @db.Date
+  fechaEnvio         DateTime @db.Date // Fecha única de envío
   totalReservas      Int      // Total de reservas en ese periodo
   totalUsuarios      Int      // Total de usuarios que reservaron
   fechaArchivado     DateTime @default(now())
@@ -130,15 +128,14 @@ model HistoricoReserva {
   status             String   @db.VarChar(50) // StatusReserva como string
   
   // Datos del periodo (snapshot)
-  periodoFechaInicio DateTime @db.Date
-  periodoFechaFin    DateTime @db.Date
+  periodoFechaEnvio  DateTime @db.Date // Fecha única de envío
   
   // Metadata
   fechaArchivado     DateTime @default(now())
   reservaOriginalId  Int      // ID de la reserva original
 
   @@index([userId])
-  @@index([periodoFechaInicio, periodoFechaFin])
+  @@index([periodoFechaEnvio])
   @@map("historico_reservas")
 }
 
