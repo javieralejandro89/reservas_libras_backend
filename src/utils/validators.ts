@@ -2,7 +2,7 @@
  * Utilidades de validación y sanitización
  */
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { CONFIG } from '../config/constants';
 
 // ============================================
