@@ -132,6 +132,9 @@ export interface UpdateReservaDTO {
   estado?: string;
   observaciones?: string;
   status?: StatusReserva;
+  fechaConfirmacion?: Date | null;
+  fechaEnvio?: Date | null;
+  fechaEntrega?: Date | null;
 }
 
 /**

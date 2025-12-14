@@ -75,20 +75,7 @@ export const createReserva = async (
 
   if (periodosActivos.length === 0) {
     throw createBadRequestError('No hay periodos activos disponibles para esta fecha o fechas futuras');
-  }
-
-  // Validar que la fecha esté dentro de al menos un periodo
-  const periodoConFecha = periodosActivos.find(p => {
-  const fechaEnvioPeriodo = parseDateWithoutTimezone(p.fechaEnvio.toISOString().split('T')[0]!);
-    return fechaReserva.getTime() === fechaEnvioPeriodo.getTime();
-});
-
-  if (!periodoConFecha) {
-    throw createBadRequestError(
-      `La fecha ${fechaReserva.toLocaleDateString('es-MX')} no corresponde a ningún periodo activo. ` +
-      `Selecciona una fecha entre los periodos disponibles.`
-    );
-  }
+  }  
 
   // PRIMERO: Calcular cuántas libras se pueden reservar SIN crear nada
   let librasRestantes = librasDecimal;
@@ -110,23 +97,28 @@ export const createReserva = async (
     if (librasDisponibles > 0) {
       const librasParaEstePeriodo = Math.min(librasRestantes, librasDisponibles);
 
-      const fechaEnvioPeriodo = parseDateWithoutTimezone(periodo.fechaEnvio.toISOString().split('T')[0]!);
+      // ✅ CORREGIDO: Usar >= 0.01 en vez de > 0
+      if (librasParaEstePeriodo >= 0.01) {
+        const fechaEnvioPeriodo = parseDateWithoutTimezone(periodo.fechaEnvio.toISOString().split('T')[0]!);
 
-      const fechaReservaParaPeriodo: Date = 
-        planDeReservas.length === 0 && 
-        fechaReserva.getTime() === fechaEnvioPeriodo.getTime()
-          ? fechaReserva
-          : fechaEnvioPeriodo;
+        const fechaReservaParaPeriodo: Date = 
+          planDeReservas.length === 0 && 
+          fechaReserva.getTime() === fechaEnvioPeriodo.getTime()
+            ? fechaReserva
+            : fechaEnvioPeriodo;
 
-      planDeReservas.push({
-        periodo,
-        libras: librasParaEstePeriodo,
-        fecha: fechaReservaParaPeriodo,
-      });
+        planDeReservas.push({
+          periodo,
+          libras: librasParaEstePeriodo,
+          fecha: fechaReservaParaPeriodo,
+        });
 
-      librasRestantes -= librasParaEstePeriodo;
+        librasRestantes -= librasParaEstePeriodo;
+      }
     }
   }
+    
+  
 
   // Validar si quedan libras sin asignar ANTES de crear
   if (librasRestantes > 0) {
@@ -140,15 +132,15 @@ export const createReserva = async (
   // AHORA SÍ: Crear las reservas
   const reservasCreadas: any[] = [];
 
-for (const [index, plan] of planDeReservas.entries()) {
-  const reserva = await prisma.reserva.create({
+  for (const [index, plan] of planDeReservas.entries()) {
+    const reserva = await prisma.reserva.create({
       data: {
         libras: plan.libras,
         fecha: plan.fecha,
         estado,
         observaciones: index === 0 
-  ? observaciones || null
-  : `Reserva dividida - Parte ${index + 1}. ${observaciones || ''}`,
+          ? observaciones || null
+          : `Reserva dividida - Parte ${index + 1}. ${observaciones || ''}`,
         userId: req.user.id,
         periodoId: plan.periodo.id,
       },
@@ -355,7 +347,7 @@ export const updateReserva = async (
     throw createBadRequestError('ID de reserva requerido');
   }
 
-  const { libras, fecha, estado, observaciones, status } = req.body as UpdateReservaDTO;
+  const { libras, estado, observaciones, status } = req.body as UpdateReservaDTO;
 
   // Buscar reserva
   const reserva = await prisma.reserva.findUnique({
@@ -378,70 +370,27 @@ export const updateReserva = async (
   // Si se actualizan las libras, validar disponibilidad
   if (libras !== undefined) {
     const librasDecimal = parseDecimal(libras);
+    
+    // Calcular libras disponibles (excluyendo esta reserva)
     const librasDisponibles = await calcularLibrasDisponibles(
       reserva.periodoId,
-      reserva.id // Excluir esta reserva del cálculo
+      reserva.id
     );
-
-    if (librasDecimal > librasDisponibles + parseFloat(reserva.libras.toString())) {
+    
+    // Validar que las nuevas libras no excedan lo disponible
+    if (librasDecimal > librasDisponibles) {
       throw createBadRequestError(
-        `${ERROR_MESSAGES.LIBRAS_INSUFICIENTES}. Disponibles: ${librasDisponibles + parseFloat(reserva.libras.toString())} lbs`
+        `No hay suficientes libras disponibles en este periodo. ` +
+        `Solicitadas: ${librasDecimal} lbs, ` +
+        `Disponibles: ${librasDisponibles.toFixed(2)} lbs`
       );
     }
 
     updateData.libras = librasDecimal;
   }
 
-  if (fecha !== undefined) {
-  const fechaReserva = parseDateWithoutTimezone(fecha);
-
-  // Buscar periodo activo que contenga la nueva fecha
-  const nuevoPeriodo = await prisma.periodoLibras.findFirst({
-    where: {
-      isActive: true,
-      fechaEnvio: fechaReserva,
-    },
-  });
-
-  if (!nuevoPeriodo) {
-    throw createBadRequestError(
-      `La fecha ${fechaReserva.toLocaleDateString('es-MX')} no corresponde a ningún periodo activo.`
-    );
-  }
-
-  updateData.fecha = fechaReserva;
-
-  // Si cambió de periodo, verificar disponibilidad y actualizar periodoId
-  if (nuevoPeriodo.id !== reserva.periodoId) {
-    // Calcular libras disponibles en el nuevo periodo
-    const reservasNuevoPeriodo = await prisma.reserva.findMany({
-      where: {
-        periodoId: nuevoPeriodo.id,
-        status: { notIn: ['CANCELADA'] },
-        id: { not: reserva.id }, // Excluir esta reserva
-      },
-    });
-
-    const librasReservadasNuevoPeriodo = reservasNuevoPeriodo.reduce((sum, r) => {
-      return sum + parseFloat(r.libras.toString());
-    }, 0);
-
-    const librasDisponiblesNuevoPeriodo = nuevoPeriodo.librasTotales - librasReservadasNuevoPeriodo;
-
-    // Verificar que haya espacio para las libras de esta reserva
-    const librasReserva = libras !== undefined ? parseDecimal(libras) : parseFloat(reserva.libras.toString());
-
-    if (librasReserva > librasDisponiblesNuevoPeriodo) {
-      throw createBadRequestError(
-        `No hay suficientes libras disponibles en el periodo con envío el ${nuevoPeriodo.fechaEnvio.toLocaleDateString('es-MX')}. ` +
-        `Disponibles: ${librasDisponiblesNuevoPeriodo.toFixed(2)} lbs, necesarias: ${librasReserva.toFixed(2)} lbs.`
-      );
-    }
-
-    // Actualizar periodoId
-    updateData.periodoId = nuevoPeriodo.id;
-  }
-}
+  // ✅ ELIMINADO: Todo el bloque de validación de fecha (líneas 387-436)
+  // La fecha NO se puede cambiar después de crear la reserva
 
   if (estado) updateData.estado = estado;
   if (observaciones !== undefined) updateData.observaciones = observaciones;
@@ -515,10 +464,23 @@ export const updateReservaStatus = async (
     );
   }
 
+  // Preparar datos de actualización con tracking
+  const updateData: any = { status };
+  
+  // Registrar fecha según el nuevo estado
+  const now = new Date();
+  if (status === 'CONFIRMADA') {
+    updateData.fechaConfirmacion = now;
+  } else if (status === 'ENVIADA') {
+    updateData.fechaEnvio = now;
+  } else if (status === 'ENTREGADA') {
+    updateData.fechaEntrega = now;
+  }
+  
   // Actualizar status
   const updatedReserva = await prisma.reserva.update({
     where: { id: parseInt(reservaId, 10) },
-    data: { status },
+    data: updateData,
     include: {
       user: {
         select: {

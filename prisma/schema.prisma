@@ -75,6 +75,11 @@ model Reserva {
   estado        String         @db.VarChar(100) // CDMX, Monterrey, etc.
   observaciones String?        @db.Text
   status        StatusReserva  @default(PENDIENTE)
+
+  // Tracking de cambios de estado
+  fechaConfirmacion DateTime?   @db.DateTime
+  fechaEnvio        DateTime?   @db.DateTime
+  fechaEntrega      DateTime?   @db.DateTime
   
   // Relaciones
   userId        Int
