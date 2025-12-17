@@ -5,6 +5,7 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import path from 'path';
 import { CONFIG } from './config/constants';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 
@@ -14,6 +15,7 @@ import userRoutes from './routes/userRoutes';
 import reservaRoutes from './routes/reservaRoutes';
 import periodoRoutes from './routes/periodoRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
+import profileRoutes from './routes/profileRoutes';
 
 /**
  * Crear y configurar la aplicación Express
@@ -47,6 +49,13 @@ export const createApp = (): Application => {
   }
 
   // ============================================
+  // ARCHIVOS ESTÁTICOS
+  // ============================================
+
+  // Servir archivos de uploads (avatares)
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+  // ============================================
   // HEALTH CHECK
   // ============================================
 
@@ -68,6 +77,7 @@ export const createApp = (): Application => {
   app.use('/api/reservas', reservaRoutes);
   app.use('/api/periodos', periodoRoutes);
   app.use('/api/dashboard', dashboardRoutes);
+  app.use('/api/profile', profileRoutes);
 
   // ============================================
   // MANEJADORES DE ERROR

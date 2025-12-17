@@ -17,6 +17,7 @@ model User {
   name      String   @db.VarChar(100)
   email     String   @unique @db.VarChar(255)
   password  String   @db.VarChar(255)
+  avatar    String?  @db.VarChar(500) // Ruta del avatar
   role      Role     @default(USUARIO)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())

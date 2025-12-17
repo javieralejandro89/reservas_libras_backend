@@ -64,6 +64,21 @@ export interface UpdateProfileDTO {
   name?: string;
 }
 
+/**
+ * DTO para cambiar contraseña del perfil
+ */
+export interface ChangeProfilePasswordDTO {
+  currentPassword: string;
+  newPassword: string;
+}
+
+/**
+ * DTO para subir avatar
+ */
+export interface UploadAvatarDTO {
+  file: Express.Multer.File;
+}
+
 // ============================================
 // DTOs DE USUARIOS (ADMIN)
 // ============================================
