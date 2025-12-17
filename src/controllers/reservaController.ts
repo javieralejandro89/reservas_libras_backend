@@ -150,6 +150,7 @@ export const createReserva = async (
             id: true,
             name: true,
             email: true,
+            avatar: true,
           },
         },
         periodo: {
@@ -245,6 +246,7 @@ export const listReservas = async (
           id: true,
           name: true,
           email: true,
+          avatar: true,
         },
       },
       periodo: {
@@ -300,6 +302,7 @@ export const getReservaById = async (
           id: true,
           name: true,
           email: true,
+          avatar: true,
         },
       },
       periodo: {
@@ -406,6 +409,7 @@ export const updateReserva = async (
           id: true,
           name: true,
           email: true,
+          avatar: true,
         },
       },
       periodo: {
@@ -487,6 +491,7 @@ export const updateReservaStatus = async (
           id: true,
           name: true,
           email: true,
+          avatar: true,
         },
       },
     },
