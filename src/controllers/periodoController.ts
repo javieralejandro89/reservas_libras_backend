@@ -63,7 +63,8 @@ export const listPeriodos = async (
   const where: any = {};
 
   if (isActive !== undefined) {
-    where.isActive = isActive === 'true';
+    // Convertir a string primero y luego comparar
+    where.isActive = String(isActive) === 'true';
   }
 
   // Obtener total
@@ -76,6 +77,14 @@ export const listPeriodos = async (
       _count: {
         select: {
           reservas: true,
+        },
+      },
+      // Incluir reservas completas para calcular disponibilidad en frontend
+      reservas: {
+        select: {
+          id: true,
+          libras: true,
+          status: true,
         },
       },
     },

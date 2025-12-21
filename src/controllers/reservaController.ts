@@ -51,26 +51,69 @@ export const createReserva = async (
     throw createBadRequestError('Usuario no autenticado');
   }
 
-  const { libras, fecha, estado, observaciones } = req.body as CreateReservaDTO;
+  const { libras, fecha, estado, observaciones, periodoId } = req.body as CreateReservaDTO;
   const librasDecimal = parseDecimal(libras);
   const fechaReserva = parseDateWithoutTimezone(fecha);
 
-  // Buscar periodos activos que incluyan o sean posteriores a esta fecha
-  const periodosActivos = await prisma.periodoLibras.findMany({
-    where: {
-      isActive: true,
-      fechaEnvio: { gte: fechaReserva },
-    },
-    orderBy: {
-      fechaEnvio: 'asc',
-    },
-    include: {
-      reservas: {
-        where: {
-          status: { notIn: ['CANCELADA'] },
+  // Buscar periodos activos
+  let periodosActivos;
+  
+  if (periodoId) {
+    // Si se especificó un periodo del dropdown, usarlo directamente
+    const periodoEspecifico = await prisma.periodoLibras.findFirst({
+      where: {
+        id: periodoId,
+        isActive: true,
+      },
+      include: {
+        reservas: {
+          where: {
+            status: { notIn: ['CANCELADA'] },
+          },
         },
       },
-    },
+    });
+
+    if (!periodoEspecifico) {
+      throw createBadRequestError('El periodo seleccionado no existe o no está activo');
+    }
+
+    periodosActivos = [periodoEspecifico];
+  } else {
+    // Lógica original: buscar periodos desde la fecha
+    periodosActivos = await prisma.periodoLibras.findMany({
+      where: {
+        isActive: true,
+        fechaEnvio: { gte: fechaReserva },
+      },
+      orderBy: {
+        fechaEnvio: 'asc',
+      },
+      include: {
+        reservas: {
+          where: {
+            status: { notIn: ['CANCELADA'] },
+          },
+        },
+      },
+    });
+  }
+
+  console.log('📦 Periodos activos encontrados:', periodosActivos.length);
+  periodosActivos.forEach((periodo, index) => {
+    const librasReservadas = periodo.reservas.reduce((sum, reserva) => {
+      return sum + parseFloat(reserva.libras.toString());
+    }, 0);
+    const disponibles = periodo.librasTotales - librasReservadas;
+    
+    console.log(`📊 Periodo ${index + 1}:`, {
+      id: periodo.id,
+      fechaEnvio: periodo.fechaEnvio.toISOString().split('T')[0],
+      librasTotales: periodo.librasTotales,
+      cantidadReservas: periodo.reservas.length,
+      librasReservadas,
+      librasDisponibles: disponibles
+    });
   });
 
   if (periodosActivos.length === 0) {
@@ -200,7 +243,7 @@ export const listReservas = async (
     throw createBadRequestError('Usuario no autenticado');
   }
 
-  const { page, limit, userId, status, estado, periodoId, startDate, endDate } = req.query;
+  const { page, limit, userId, status, estado, periodoId } = req.query;
 
   // Normalizar paginación
   const pagination = normalizePagination(page as string, limit as string);
@@ -227,12 +270,7 @@ export const listReservas = async (
   if (periodoId) {
     where.periodoId = parseInt(periodoId as string, 10);
   }
-
-  if (startDate || endDate) {
-    where.fecha = {};
-    if (startDate) where.fecha.gte = new Date(startDate as string);
-    if (endDate) where.fecha.lte = new Date(endDate as string);
-  }
+ 
 
   // Obtener total
   const total = await prisma.reserva.count({ where });

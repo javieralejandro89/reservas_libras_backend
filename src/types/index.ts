@@ -136,6 +136,7 @@ export interface CreateReservaDTO {
   fecha: string | Date;
   estado: string;
   observaciones?: string;
+  periodoId?: number;
 }
 
 /**
