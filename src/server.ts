@@ -2,6 +2,11 @@
  * Servidor principal
  */
 
+// ============================================
+// CONFIGURAR TIMEZONE A MÉXICO
+// ============================================
+process.env.TZ = 'America/Mexico_City';
+
 import { createApp } from './app';
 import { CONFIG } from './config/constants';
 import { connectPrisma, disconnectPrisma } from './config/prisma';
@@ -26,6 +31,8 @@ const startServer = async () => {
       console.log(`🌐 Puerto: ${CONFIG.PORT}`);
       console.log(`🔗 URL: http://localhost:${CONFIG.PORT}`);
       console.log(`🏥 Health check: http://localhost:${CONFIG.PORT}/health`);
+      console.log(`⏰ Timezone: ${process.env.TZ}`);
+      console.log(`📅 Fecha servidor: ${new Date().toLocaleString('es-MX')}`);
       console.log('='.repeat(50));
     });
 

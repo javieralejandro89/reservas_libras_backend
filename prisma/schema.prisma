@@ -78,9 +78,9 @@ model Reserva {
   status        StatusReserva  @default(PENDIENTE)
 
   // Tracking de cambios de estado
-  fechaConfirmacion DateTime?   @db.DateTime
-  fechaEnvio        DateTime?   @db.DateTime
-  fechaEntrega      DateTime?   @db.DateTime
+  fechaConfirmacion DateTime?   @db.Date
+  fechaEnvio        DateTime?   @db.Date
+  fechaEntrega      DateTime?   @db.Date
   
   // Relaciones
   userId        Int

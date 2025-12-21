@@ -327,3 +327,14 @@ export const truncateText = (text: string, maxLength: number): string => {
   
   return text.substring(0, maxLength - 3) + '...';
 };
+
+/**
+ * Obtener fecha actual en formato YYYY-MM-DD
+ */
+export const getTodayDateString = (): string => {
+  const hoy = new Date();
+  const year = hoy.getFullYear();
+  const month = String(hoy.getMonth() + 1).padStart(2, '0');
+  const day = String(hoy.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};

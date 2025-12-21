@@ -5,7 +5,7 @@
 import { Response } from 'express';
 import { prisma } from '../config/prisma';
 import { AuthenticatedRequest, ApiResponse, CreateReservaDTO, UpdateReservaDTO, PaginatedResponse } from '../types';
-import { normalizePagination, calculateTotalPages, parseDecimal, parseDateWithoutTimezone } from '../utils/validators';
+import { normalizePagination, calculateTotalPages, parseDecimal, parseDateWithoutTimezone, getTodayDateString } from '../utils/validators';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS, ROLES } from '../config/constants';
 import { createNotFoundError, createBadRequestError, createForbiddenError } from '../middlewares/errorHandler';
 import { canChangeReservaStatus } from '../middlewares/authorization';
@@ -471,14 +471,15 @@ export const updateReservaStatus = async (
   // Preparar datos de actualización con tracking
   const updateData: any = { status };
   
-  // Registrar fecha según el nuevo estado
-  const now = new Date();
+  // Registrar fecha actual (solo fecha, sin hora)
+  const fechaActual = parseDateWithoutTimezone(getTodayDateString());
+  
   if (status === 'CONFIRMADA') {
-    updateData.fechaConfirmacion = now;
+    updateData.fechaConfirmacion = fechaActual;
   } else if (status === 'ENVIADA') {
-    updateData.fechaEnvio = now;
+    updateData.fechaEnvio = fechaActual;
   } else if (status === 'ENTREGADA') {
-    updateData.fechaEntrega = now;
+    updateData.fechaEntrega = fechaActual;
   }
   
   // Actualizar status
