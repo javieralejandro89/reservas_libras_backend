@@ -7,6 +7,7 @@ import {
   createPeriodo,
   listPeriodos,
   getPeriodoActivo,
+  getPeriodosDisponibles,
   getPeriodoById,
   updatePeriodo,
   closePeriodo,
@@ -20,13 +21,23 @@ import {
   updatePeriodoValidation,
   closePeriodoValidation,
   getPeriodoByIdValidation,
-  listPeriodosValidation,
+  listPeriodosValidation,  
 } from '../validators/periodoValidators';
 
 const router = Router();
 
 // Todas las rutas requieren autenticación
 router.use(authenticate);
+
+/**
+ * GET /api/periodos/available
+ * Obtener periodos disponibles para crear reservas
+ * Usuario/Admin
+ */
+router.get(
+  '/available',
+  asyncHandler(getPeriodosDisponibles)
+);
 
 /**
  * GET /api/periodos/active

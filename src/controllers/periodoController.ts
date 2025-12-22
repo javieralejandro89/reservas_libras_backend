@@ -158,6 +158,40 @@ export const getPeriodoActivo = async (
 };
 
 /**
+ * Obtener periodos activos con disponibilidad (para crear reservas)
+ * GET /api/periodos/available
+ */
+export const getPeriodosDisponibles = async (
+  _req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  const periodosActivos = await prisma.periodoLibras.findMany({
+    where: {
+      isActive: true,
+    },
+    include: {
+      reservas: {
+        select: {
+          id: true,
+          libras: true,
+          status: true,
+        },
+      },
+    },
+    orderBy: {
+      fechaEnvio: 'asc',
+    },
+  });
+
+  const response: ApiResponse = {
+    success: true,
+    data: periodosActivos,
+  };
+
+  res.status(HTTP_STATUS.OK).json(response);
+};
+
+/**
  * Obtener periodo por ID
  * GET /api/periodos/:periodoId
  */
